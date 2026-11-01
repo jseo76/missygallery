@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="en-IE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11110f">
+  <meta name="description" content="Step inside an immersive photographic gallery, where light and shadow transform the room around you.">
+  <title>Missy Brinkmeyer — The Living Gallery</title>
+  <link rel="preconnect" href="https://images.unsplash.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #11110f;
+      --paper: #e9e3d8;
+      --muted: #9c978e;
+      --accent: #c6a76c;
+      --wing: #c6a76c;
+      --display: "Playfair Display", Georgia, serif;
+      --sans: "DM Sans", sans-serif;
+      --mono: "DM Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--ink); scroll-behavior: smooth; }
+    body { margin: 0; color: var(--paper); background: var(--ink); font-family: var(--sans); }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid #f4cb7a; outline-offset: 4px; }
+    .site-header {
+      position: fixed; inset: 0 0 auto; z-index: 20; display: flex; justify-content: space-between;
+      align-items: center; padding: 21px 4vw; background: linear-gradient(#11110fdd, transparent);
+      pointer-events: none;
+    }
+    .site-header > * { pointer-events: auto; }
+    .wordmark { border: 0; background: none; padding: 0; cursor: pointer; text-align: left; }
+    .wordmark strong { display: block; font-family: var(--display); font-size: 19px; font-weight: 500; letter-spacing: .03em; }
+    .wordmark span, .eyebrow { color: var(--muted); font: 10px var(--mono); letter-spacing: .2em; text-transform: uppercase; }
+    .header-right { display: flex; gap: 12px; align-items: center; }
+    .text-button, .icon-button, .round-button {
+      border: 1px solid #ffffff37; background: #11110fc9; cursor: pointer; transition: .2s ease;
+    }
+    .text-button { padding: 11px 16px; font: 10px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    .text-button:hover, .icon-button:hover, .round-button:hover { border-color: var(--accent); color: var(--accent); }
+    .cart-count { color: var(--accent); padding-left: 5px; }
+    .whatsapp-link {
+      position: fixed; z-index: 15; left: 4vw; bottom: 12px;
+      display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+      border: 1px solid #65a87866; border-radius: 50%; color: #8bc99a; background: #11110fee;
+      transition: .2s ease;
+    }
+    .whatsapp-link:hover { border-color: #8bc99a; color: #b6e4c0; background: #1b241e; }
+    .whatsapp-link svg { display: block; width: 16px; height: 16px; fill: currentColor; }
+
+    main { min-height: 100vh; overflow: hidden; }
+    .gallery {
+      --wall-left: #393832; --wall-back: #262521; --wall-right: #36342e; --floor: #292722;
+      --glow: #d7b979; --shadow: #090909;
+      position: relative; min-height: 100svh; height: 100svh; overflow: hidden; isolation: isolate;
+      background: radial-gradient(ellipse at 50% 44%, #574e3a 0, #25231e 48%, #11110f 79%);
+      transition: background 1s ease;
+    }
+    .gallery[data-room="city"], .gallery[data-room="garden"] {
+      --wall-left: #394039; --wall-back: #29312d; --wall-right: #3a3837; --floor: #292c27;
+      --glow: #e6bcae; --shadow: #0a110e; --wing: #dfab9c;
+      background: radial-gradient(ellipse at 50% 39%, #4f6252 0, #28332d 47%, #11110f 80%);
+    }
+    .gallery[data-room="glamour"] {
+      --wall-left: #441c32; --wall-back: #351329; --wall-right: #49213a; --floor: #261422;
+      --glow: #ffce37; --shadow: #140814; --wing: #ffce37;
+      background: radial-gradient(ellipse at 50% 38%, #883c61 0, #441b36 45%, #160e16 81%);
+    }
+    .room-wrap {
+      position: absolute; inset: 0; display: grid; place-items: center; perspective: 1050px;
+      perspective-origin: 50% 45%;
+    }
+    .room {
+      --room-y: 0deg;
+      position: relative; width: 1140px; height: min(80vh, 830px); min-height: 550px; pointer-events: none;
+      transform-style: preserve-3d; transform: rotateY(var(--room-y));
+      transition: transform 1.15s cubic-bezier(.2,.8,.2,1);
+    }
+    .room.dragging { transition: none; }
+    .gallery-photo-button { cursor:zoom-in; }
+    .gallery-photo-button:focus-visible { outline:2px solid #fff; outline-offset:5px; }
+    .photo-approach { position:fixed; inset:0; z-index:35; background:#080808e8; }
+    .photo-approach[hidden] { display:none; }
+    .photo-approach img { position:absolute; object-fit:contain; transition:left .85s ease, top .85s ease, width .85s ease, height .85s ease; }
+    .photo-step-back { position:absolute; z-index:1; top:20px; right:24px; padding:12px 16px; border:1px solid #ffffff60; background:#141414; color:#fff; cursor:pointer; font:10px var(--mono); letter-spacing:.12em; text-transform:uppercase; }
+    .wall {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: clip;
+      transform-style: preserve-3d; backface-visibility: hidden; pointer-events: auto;
+      border: 1px solid #ffffff10; box-shadow: inset 0 0 100px #0007;
+    }
+    .wall > *, .wall::before, .wall::after { backface-visibility:hidden; }
+    .wall::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, #0003, transparent 20%, transparent 80%, #0004); }
+    .wall-artwork {
+      position: absolute; z-index: 2; inset: 8% 7%; display: none;
+      grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: clamp(8px, 1.1vw, 16px); align-items: center; justify-items: center;
+    }
+    .framed-photo {
+      display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 0;
+      max-width: 100%; max-height: 100%; margin: 0; padding: 0; border: 6px solid #a68a62;
+      background: #a68a62; box-shadow: 0 8px 18px #0009;
+    }
+    .framed-photo img {
+      display: block; width: auto; height: auto; max-width: 100%; max-height: min(28vh, 245px);
+      object-fit: contain;
+    }
+    .entrance-display {
+      position: absolute; z-index: 2; inset: 7% 7% 6%; display: none;
+      grid-template-columns: minmax(150px, 23%) minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) auto; gap: 5% 4%; align-items: center;
+      color: #e9e3d8; text-shadow: 0 1px 5px #000b;
+    }
+    .gallery[data-room="home"] .entrance-display { display: grid; }
+    .entrance-portrait {
+      justify-self: center; margin: 0; padding: 0; border: 7px solid #a68a62;
+      background: #a68a62; box-shadow: 0 8px 20px #000a;
+    }
+    .entrance-portrait img {
+      display: block; width: auto; height: auto; max-width: 100%; max-height: min(43vh, 360px);
+      object-fit: contain;
+    }
+    .entrance-biography { align-self: center; }
+    .entrance-biography h1 {
+      margin: 0 0 .45em; color: #f0e9db; font: 500 clamp(20px, 2.8vw, 36px) var(--display);
+    }
+    .entrance-biography p {
+      margin: 0 0 .7em; color: #e1dccf; font: 400 clamp(10px, 1.12vw, 14px)/1.55 var(--sans);
+    }
+    .entrance-timeline {
+      grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 3%; padding-top: 12px; border-top: 1px solid #e9e3d866;
+    }
+    .entrance-timeline article { position: relative; padding-top: 10px; }
+    .entrance-timeline article::before {
+      content: ""; position: absolute; top: -16px; left: 0; width: 7px; height: 7px;
+      border-radius: 50%; background: #d7b979; box-shadow: 0 0 9px #d7b97999;
+    }
+    .entrance-timeline h2 { margin: 0 0 5px; color: #e7cc91; font: 500 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .entrance-timeline p { margin: 0; color: #d0cabe; font: 400 clamp(9px, .92vw, 12px)/1.45 var(--sans); }
+    .entrance-quote {
+      position: absolute; z-index: 2; inset: 12% 10%; display: none; flex-direction: column;
+      justify-content: center; color: #e9e3d8; text-shadow: 0 2px 6px #000b;
+    }
+    .gallery[data-room="home"] .entrance-quote { display: flex; }
+    .entrance-quote p {
+      margin: 0 0 .85em; font: italic 500 clamp(17px, 2.1vw, 28px)/1.55 var(--display);
+    }
+    .entrance-quote cite {
+      align-self: flex-end; color: #e7cc91; font: normal 500 11px var(--mono);
+      letter-spacing: .1em; text-transform: uppercase;
+    }
+    .entrance-wall-photo {
+      position: absolute; z-index: 2; top: 50%; left: 50%; display: none; width: min(72%, 820px);
+      margin: 0; padding: 8px; border: 2px solid #a68a62; background: #a68a62;
+      box-shadow: 0 12px 28px #000a; transform: translate(-50%, -50%);
+    }
+    .gallery[data-room="home"] .entrance-wall-photo { display: block; }
+    .entrance-wall-photo img { display: block; width: 100%; height: auto; }
+    .entrance-video-showcase {
+      position: absolute; z-index: 2; inset: 8% 9% 22%; display: none;
+      grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 5%; align-items: center;
+      transform: translateY(0);
+    }
+    .gallery[data-room="home"] .entrance-video-showcase { display: grid; }
+    .entrance-projector {
+      position: relative; justify-self: center; height: 115%; aspect-ratio: 9 / 16;
+      max-width: 100%; overflow:hidden; transform:translateY(10%);
+      background: #080808; box-shadow: 0 0 32px #eee6, 0 0 110px #eee3, 0 12px 30px #000b;
+    }
+    /* Crop Instagram's header and footer outside the projection area. */
+    .entrance-projector iframe { position:absolute; top:-60px; left:-2%; display:block; width:120%; height:calc(120% + 400px); border:0; background:#080808; transform:scale(1.5); transform-origin:50% 60px; }
+    .projector-open-link {
+      position: absolute; z-index: 1; top: 50%; left: 50%; display: grid; width: 42px; height: 42px;
+      place-items: center; border: 1px solid #e9e3d855; border-radius: 50%;
+      background: #11110f99; color: #e9e3d8; text-decoration: none;
+      transform: translate(-50%, -50%); transition: .2s ease;
+    }
+    .projector-open-link:hover { border-color: #e7cc91; color: #e7cc91; background: #11110fee; }
+    .projector-open-link svg { display: block; width: 13px; height: 15px; fill: currentColor; margin-left: 2px; }
+    .projector-open-link {
+      position: absolute; z-index: 1; top: 50%; left: 50%; display: grid; width: 42px; height: 42px;
+      place-items: center; border: 1px solid #e9e3d855; border-radius: 50%;
+      background: #11110f99; color: #e9e3d8; text-decoration: none;
+      transform: translate(-50%, -50%); transition: .2s ease;
+    }
+    .projector-open-link:hover { border-color: #e7cc91; color: #e7cc91; background: #11110fee; }
+    .projector-open-link svg { display: block; width: 13px; height: 15px; fill: currentColor; margin-left: 2px; }
+    .entrance-projector-label {
+      position: absolute; top: calc(100% + 10px); left: 50%; width: max-content;
+      transform: translateX(-50%); color: #d7d1c5; font: 9px var(--mono);
+      letter-spacing: .12em; text-transform: uppercase; text-shadow: 0 1px 5px #000;
+    }
+    .exhibition-card {
+      display: grid; gap: 7px; color: inherit; text-decoration: none;
+      transition: color .2s ease;
+    }
+    .exhibition-card:hover { color: #e7cc91; }
+    .exhibition-card:focus-visible { outline: 2px solid #f4cb7a; outline-offset: 4px; }
+    .exhibition-links { position:relative; display:grid; gap:18px; }
+    .social-member-row { display:flex; align-items:center; gap:16px; }
+    .social-member-row .vai-member-logo { width:clamp(50px,6vw,75px); flex-shrink:0; }
+    .gallery-credits { position:absolute; top:calc(100% + 20px); left:0; width:100%; display:grid; gap:12px; justify-items:start; }
+    .instagram-profile { display:inline-flex; align-items:center; gap:8px; color:#ddd; font:12px var(--sans); text-decoration:none; }
+    .instagram-profile:hover { color:#fff; }
+    .instagram-profile:focus-visible { outline:2px solid #fff; outline-offset:4px; }
+    .instagram-profile svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.8; }
+    .vai-member-logo { display:block; width:clamp(80px,9vw,125px); max-width:100%; height:auto; }
+    .copyright-notice { margin:0; color:#bbb; font:10px var(--sans); line-height:1.5; }
+    .exhibitions-awards-link { width:fit-content; text-decoration:none; }
+    .exhibitions-awards-link:hover { color:#e7cc91; }
+    .exhibitions-awards-link:focus-visible { outline:2px solid #f4cb7a; outline-offset:4px; }
+    .exhibition-heading { display: block; }
+    .exhibition-card h2, .exhibitions-awards-link {
+      margin: 0; color: #e7cc91; font: 500 clamp(18px, 2.1vw, 28px) var(--display);
+    }
+    .wall.front { transform: translateZ(-570px); background: linear-gradient(180deg, #ffffff08, transparent 48%, #0002), var(--wall-back); }
+    .wall.side { width: 100%; }
+    .wall.left { transform: rotateY(90deg) translateZ(-570px); background: var(--wall-left); }
+    .wall.right { transform: rotateY(-90deg) translateZ(-570px); background: var(--wall-right); }
+    .wall.back { transform: rotateY(180deg) translateZ(-570px); background: var(--wall-back); }
+    .wall.ceiling {
+      width: 1140px; height: 1140px; left: 0; top: 50%; transform: translateY(-50%) rotateX(90deg) translateZ(415px);
+      background: radial-gradient(ellipse at center, #fff2 0, transparent 38%), #282722;
+    }
+    .wall.floor {
+      width: 1140px; height: 1140px; left: 0; top: 50%; bottom: auto; transform: translateY(-50%) rotateX(-90deg) translateZ(415px);
+      background: repeating-linear-gradient(90deg, transparent 0 110px, #ffffff08 111px 113px), linear-gradient(#312f29, #191815);
+      box-shadow: inset 0 50px 90px #0008;
+    }
+    .wall.front::before {
+      content: ""; position: absolute; inset: 0; opacity: .7;
+      background: radial-gradient(ellipse at 50% 48%, color-mix(in srgb, var(--glow) 15%, transparent), transparent 49%);
+    }
+    .gallery[data-room="city"] .wall.front, .gallery[data-room="garden"] .wall.front { background-image: radial-gradient(ellipse at 50% 35%,#70927620,transparent 60%); }
+    .gallery[data-room="glamour"] .wall.front { background-image: repeating-linear-gradient(45deg,transparent 0 58px,#ffda3910 59px 60px),radial-gradient(ellipse at 50% 30%,#ffb1d220,transparent 60%); }
+
+    .room-nav { position:fixed; z-index:10; bottom:26px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:8px; padding:8px; border:1px solid #ffffff25; background:#10100fce; backdrop-filter:blur(14px); }
+    .room-nav button { border:0; padding:11px 14px; background:transparent; color:#aaa69e; cursor:pointer; font:9px var(--mono); letter-spacing:.12em; text-transform:uppercase; transition:.2s; white-space:nowrap; }
+    .room-nav button:hover, .room-nav button[aria-current="page"] { color:var(--paper); background:#ffffff12; }
+    .room-nav button[aria-current="page"] { box-shadow:inset 0 -2px var(--wing); }
+    .room-controls { position:fixed; z-index:10; right:4vw; bottom:31px; display:flex; gap:7px; align-items:center; color:#aaa69e; font:9px var(--mono); }
+    .round-button { width:35px; height:35px; border-radius:50%; font-size:15px; }
+    .interaction-hint { position:fixed; z-index:5; top:68px; right:4vw; color:#ffffff72; font:9px var(--mono); letter-spacing:.1em; }
+    .collection-info {
+      position:fixed; z-index:7; left:4vw; bottom:78px; max-width:230px; color:#c3bfb6; font-size:11px; line-height:1.55;
+      opacity:0; transition:opacity .4s; pointer-events:none;
+    }
+    .gallery:not([data-room="home"]) .collection-info { opacity:1; }
+    .collection-info strong { display:block; margin-bottom:5px; color:var(--paper); font:italic 16px var(--display); }
+
+    .shop-overlay, .consent-overlay { position:fixed; z-index:40; inset:0; display:none; align-items:center; justify-content:center; padding:20px; background:#050505d9; backdrop-filter:blur(10px); }
+    .shop-overlay.open, .consent-overlay.open { display:flex; }
+    .shop-panel, .consent-panel { position:relative; width:min(940px,100%); max-height:90vh; overflow:auto; padding:clamp(25px,5vw,54px); border:1px solid #ffffff25; background:#191916; box-shadow:0 25px 90px #000b; }
+    .panel-close { position:absolute; top:18px; right:18px; border:0; background:none; color:#ccc; font-size:22px; cursor:pointer; }
+    .shop-panel h2, .consent-panel h2 { margin:10px 0 8px; font:500 clamp(30px,5vw,48px) var(--display); }
+    .panel-intro { max-width:560px; color:#bdb8ae; font-size:13px; line-height:1.7; }
+    .shop-overlay { padding:0; background:#141414; backdrop-filter:none; }
+    .shop-panel { width:100%; height:100svh; max-height:100svh; padding:clamp(16px,3vh,32px) clamp(20px,5vw,72px); display:flex; flex-direction:column; background:#141414; color:#fff; border:0; box-shadow:none; }
+    .shop-panel > .eyebrow, .shop-panel > h2, .shop-panel > .panel-intro, .shop-panel > .cart-note { flex-shrink:0; }
+    .shop-panel .shop-carousel { flex:1; min-height:0; width:min(100%,1100px); align-self:center; align-items:stretch; }
+    .shop-panel .shop-arrow { align-self:center; }
+    .shop-panel .shop-carousel:has(.shop-item.portrait:not([hidden])) { width:min(100%,900px); }
+    .shop-panel .shop-carousel:has(.shop-item.portrait:not([hidden])) .shop-grid { transform:translateX(-2%); }
+    .shop-panel .shop-item.portrait:not([hidden]) { grid-template-columns:minmax(0,1fr) minmax(100px,.5fr); gap:12px; }
+    .shop-panel .shop-grid { min-height:0; height:100%; grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr); }
+    .shop-panel .shop-item { min-height:0; min-width:0; border:0; background:transparent; }
+    .shop-panel .shop-item img { width:100%; height:100%; min-width:0; min-height:0; max-width:100%; max-height:100%; object-fit:contain; object-position:left center; }
+    .shop-panel .shop-item.portrait img { object-position:center top; }
+    .shop-panel .shop-item div { grid-column:1; grid-row:1; align-self:center; width:100%; padding:0; }
+    .shop-panel .shop-item img { grid-column:2; grid-row:1; }
+    .shop-panel .shop-item.portrait img { grid-column:1; }
+    .shop-panel .shop-item.portrait div { grid-column:2; text-align:right; }
+    .shop-panel .shop-item:not([hidden]) { display:grid; grid-template-columns:minmax(100px,.35fr) minmax(0,1fr); grid-template-rows:minmax(0,1fr); gap:clamp(12px,3vw,40px); }
+    .shop-panel .shop-item h3 { font:500 clamp(20px,2.5vw,30px) var(--display); }
+    .shop-panel .shop-item .art-description { font:12px var(--sans); line-height:1.5; color:#aaa; margin:6px 0 12px; }
+    .shop-panel .shop-item .art-long-description { margin:0 0 20px; color:#aaa; font:11px var(--sans); line-height:1.7; }
+    .shop-panel .shop-item .art-meta { display:flex; flex-direction:column; gap:10px; margin:0; color:#bbb; font:11px var(--mono); }
+    .shop-panel .shop-item .art-price { margin:10px 0 0; color:#ddd; }
+    .shop-panel .shop-arrow { border:0; background:transparent; }
+    .shop-panel h2 { width:min(100%,1012px); align-self:center; margin:6px 0; font-size:30px; }
+    .shop-carousel { display:grid; grid-template-columns:32px minmax(0,1fr) 32px; gap:12px; align-items:center; margin-top:12px; }
+    .shop-arrow { width:32px; height:40px; border:1px solid #ffffff60; background:#080808; color:#fff; font-size:22px; cursor:pointer; }
+    .shop-arrow:disabled { opacity:.3; cursor:default; }
+    .shop-item[hidden] { display:none; }
+    @media (max-height:500px) {
+      .shop-panel { padding:12px 20px; }
+      .shop-panel h2 { font-size:24px; }
+      .shop-carousel { margin-top:8px; }
+      .shop-panel .shop-item div { padding-top:8px; }
+      .shop-panel .shop-item .art-description { margin:4px 0 6px; }
+    }
+    .shop-panel .eyebrow { color:#aaa; }
+    .shop-panel .panel-intro { color:#ccc; }
+    .shop-panel button:focus-visible { outline:2px solid #fff; outline-offset:3px; }
+    .shop-grid { display:grid; min-width:0; }
+    .shop-item { border:1px solid #ffffff40; background:#080808; }
+    .shop-item img { width:100%; height:clamp(70px,28svh,220px); display:block; object-fit:cover; filter:grayscale(1) contrast(1.05); }
+    .shop-item div { padding:12px; }
+    .shop-item h3 { margin:0 0 5px; font:500 15px var(--display); }
+    .shop-item p { margin:0 0 12px; color:#bbb; font:10px var(--mono); }
+    .shop-item button { width:100%; padding:9px; border:1px solid #fff; background:#fff; color:#111; font:9px var(--mono); letter-spacing:.1em; text-transform:uppercase; cursor:pointer; }
+    .shop-item button:hover { background:#ddd; }
+    .cart-note { margin:18px 0 0; min-height:18px; color:#eee; font-size:12px; }
+
+    .consent-overlay { padding:12px; }
+    .consent-panel { width:min(500px,100%); max-height:calc(100svh - 24px); padding:24px; background:#141414; color:#fff; border-color:#ffffff40; }
+    .consent-panel .eyebrow { color:#aaa; }
+    .consent-panel h2 { margin:8px 0; font-size:30px; }
+    .consent-panel .panel-intro { margin:0; color:#ccc; font-size:12px; line-height:1.4; }
+    .consent-panel a { color:#fff; }
+    .consent-panel form { display:grid; gap:9px; margin-top:14px; }
+    .consent-panel label.field { display:grid; gap:4px; color:#ddd; font:10px var(--mono); letter-spacing:.08em; text-transform:uppercase; }
+    .consent-panel input[type="text"], .consent-panel input[type="email"], .consent-panel input[type="tel"] {
+      width:100%; padding:8px 10px; border:1px solid #ffffff50; background:#080808; color:#fff;
+      font:16px var(--sans); letter-spacing:normal; text-transform:none;
+    }
+    .consent-panel input:focus-visible, .consent-panel button:focus-visible, .consent-panel a:focus-visible, .consent-panel summary:focus-visible { outline:2px solid #fff; outline-offset:3px; }
+    .consent-choice { display:flex; gap:8px; align-items:flex-start; color:#ccc; font-size:11px; line-height:1.4; }
+    .consent-choice input { accent-color:#fff; margin-top:2px; }
+    .consent-submit { padding:10px; border:1px solid #fff; background:#fff; color:#111; cursor:pointer; font:10px var(--mono); letter-spacing:.12em; text-transform:uppercase; }
+    .consent-submit:hover { background:#ddd; }
+    .consent-fine { margin:0; color:#aaa; font-size:10px; line-height:1.5; }
+    .privacy-details { color:#bbb; font-size:10px; line-height:1.5; }
+    .privacy-details summary { width:fit-content; color:#ddd; cursor:pointer; text-decoration:underline; }
+    .privacy-details p { margin:8px 0 0; }
+    .consent-later { border:0; background:none; color:#bbb; cursor:pointer; text-decoration:underline; font-size:11px; }
+    .consent-success { display:none; padding:10px; border:1px solid #ffffff80; color:#eee; font-size:12px; line-height:1.4; }
+    @media (max-height:600px) {
+      .consent-panel { padding:16px 24px; }
+      .consent-panel h2 { font-size:24px; margin:4px 0; }
+      .consent-panel form { gap:6px; margin-top:8px; }
+      .consent-panel input[type="text"], .consent-panel input[type="email"], .consent-panel input[type="tel"] { padding:5px 8px; }
+    }
+
+    .toast { position:fixed; z-index:50; left:50%; bottom:88px; transform:translate(-50%,15px); padding:12px 18px; border:1px solid #ffffff26; background:#11110fee; color:#e4d7ba; font:10px var(--mono); opacity:0; pointer-events:none; transition:.25s; }
+    .toast.visible { opacity:1; transform:translate(-50%,0); }
+    .orientation-overlay {
+      display:none; position:fixed; z-index:60; inset:0; align-items:center; justify-content:center; padding:24px;
+      background:radial-gradient(ellipse at 50% 35%,#3b3426,#11110f 72%); text-align:center;
+    }
+    .orientation-card { width:min(340px,100%); }
+    .orientation-card h2 { margin:25px 0 10px; font:500 30px var(--display); }
+    .orientation-card p { color:#bdb8ae; font-size:13px; line-height:1.6; }
+    .phone-turn { width:82px; height:132px; margin:auto; border:3px solid #c6a76c; border-radius:14px; transform:rotate(90deg); animation:turn-phone 2.4s ease-in-out infinite; }
+    .phone-turn::after { content:""; display:block; width:8px; height:8px; margin:115px auto 0; border-radius:50%; background:#c6a76c; }
+    .orientation-button { margin-top:12px; padding:12px 16px; border:1px solid #c6a76c; background:#c6a76c; color:#17140f; cursor:pointer; font:10px var(--mono); letter-spacing:.12em; text-transform:uppercase; }
+    .orientation-hint { min-height:20px; font-size:11px !important; color:#d5bd85 !important; }
+    @keyframes turn-phone { 0%,100% { transform:rotate(90deg); } 50% { transform:rotate(0deg); } }
+    @media (max-width:760px) and (orientation:portrait) {
+      .orientation-overlay { display:flex; }
+      body { overflow:hidden; }
+    }
+    @media (max-width:760px) {
+      .site-header { padding:16px 5vw; }
+      .wordmark strong { font-size:16px; }
+      .header-right { gap:6px; }
+      .text-button { padding:10px; font-size:9px; }
+      .room { width:100vw; height:78vh; min-height:550px; }
+      .wall.front { transform:translateZ(-50vw); }
+      .wall.left { transform:rotateY(90deg) translateZ(-50vw); }
+      .wall.right { transform:rotateY(-90deg) translateZ(-50vw); }
+      .wall.back { transform:rotateY(180deg) translateZ(-50vw); }
+      .wall.ceiling, .wall.floor { width:100vw; height:100vw; }
+      .wall.ceiling, .wall.floor { top:50%; bottom:auto; }
+      .wall.ceiling { transform:translateY(-50%) rotateX(90deg) translateZ(39vh); }
+      .wall.floor { transform:translateY(-50%) rotateX(-90deg) translateZ(39vh); }
+      .room-nav { bottom:14px; gap:0; max-width:95vw; overflow-x:auto; }
+      .room-nav button { padding:11px 9px; font-size:8px; }
+      .room-controls { right:5vw; bottom:76px; }
+      .collection-info { display:none; }
+      .whatsapp-link { left:5vw; bottom:12px; }
+      .interaction-hint { top:56px; right:5vw; font-size:8px; }
+      .shop-grid { grid-template-columns:minmax(0,1fr); }
+      .entrance-display { inset: 8% 5% 6%; grid-template-columns: minmax(105px, 22%) minmax(0, 1fr); gap: 3% 4%; }
+      .entrance-portrait { border-width: 4px; }
+      .entrance-biography p { font-size: 10px; line-height: 1.4; }
+      .entrance-timeline { gap: 2%; padding-top: 8px; }
+      .entrance-timeline article { padding-top: 8px; }
+      .entrance-timeline article::before { top: -12px; width: 6px; height: 6px; }
+      .entrance-timeline h2 { font-size: 8px; }
+      .entrance-timeline p { font-size: 8px; }
+    }
+    @media (max-width:900px) and (orientation:landscape) {
+      .room { width:100vw; height:calc(100svh - 104px); min-height:0; }
+      .wall.front { transform:translateZ(-50vw); }
+      .wall.left { transform:rotateY(90deg) translateZ(-50vw); }
+      .wall.right { transform:rotateY(-90deg) translateZ(-50vw); }
+      .wall.back { transform:rotateY(180deg) translateZ(-50vw); }
+      .wall.ceiling, .wall.floor { width:100vw; height:100vw; top:50%; bottom:auto; }
+      .wall.ceiling { transform:translateY(-50%) rotateX(90deg) translateZ(calc((100svh - 104px) / 2)); }
+      .wall.floor { transform:translateY(-50%) rotateX(-90deg) translateZ(calc((100svh - 104px) / 2)); }
+      .room-nav { bottom:10px; }
+      .room-nav button { padding:9px 10px; font-size:8px; }
+      .room-controls { bottom:15px; right:3vw; }
+      .whatsapp-link { left:3vw; bottom:12px; }
+      .collection-info { display:none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <button class="wordmark" id="homeButton" aria-label="Return to the entrance hall">
+      <strong>MISSY BRINKMEYER</strong><span>THE LIVING GALLERY · IRELAND</span>
+    </button>
+    <div class="header-right">
+      <button class="text-button" id="shopButton">The Calotypist</button>
+    </div>
+  </header>
+  <a class="whatsapp-link" href="https://wa.me/353860530532" target="_blank" rel="noopener noreferrer" aria-label="Message Missy on WhatsApp" title="Message Missy on WhatsApp">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12.04 2a9.87 9.87 0 0 0-8.52 14.86L2.1 22l5.28-1.38A9.93 9.93 0 1 0 12.04 2Zm0 18.1a8.15 8.15 0 0 1-4.16-1.14l-.3-.18-3.13.82.84-3.05-.2-.32A8.14 8.14 0 1 1 12.04 20.1Zm4.47-6.1c-.24-.12-1.43-.7-1.65-.77-.22-.08-.38-.12-.54.12-.16.24-.62.77-.76.93-.14.16-.28.18-.52.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.21-1.44-1.35-1.68-.14-.24-.02-.37.1-.49.1-.1.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.54-1.3-.74-1.78-.2-.47-.4-.4-.54-.4h-.46c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.7 2.6 4.12 3.64.58.25 1.03.4 1.38.51.58.18 1.1.15 1.51.09.46-.07 1.43-.59 1.63-1.15.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28Z"/>
+    </svg>
+  </a>
+
+  <section class="orientation-overlay" id="orientationOverlay" role="dialog" aria-modal="true" aria-labelledby="orientationTitle">
+    <div class="orientation-card">
+      <div class="phone-turn" aria-hidden="true"></div>
+      <h2 id="orientationTitle">Turn into the gallery.</h2>
+      <p>This space is made to be explored wide. Turn your phone sideways for the full gallery experience.</p>
+      <button class="orientation-button" id="landscapeButton" type="button">Try landscape mode</button>
+      <p class="orientation-hint" id="orientationHint" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <main>
+    <section class="gallery" id="gallery" data-room="home" aria-label="Interactive photographic gallery">
+      <div class="room-wrap">
+        <div class="room" id="room">
+          <div class="wall front">
+            <section class="entrance-display" aria-labelledby="entranceBioTitle">
+              <figure class="entrance-portrait">
+                <img src="assets/entrance/missy-brinkmeyer.jpg" alt="Black-and-white portrait of photographer Missy Brinkmeyer">
+              </figure>
+              <div class="entrance-biography">
+                <h1 id="entranceBioTitle">A life in light</h1>
+                <p>Photography has been both an evolution and a life saver for me. Over a dozen years ago a great friend, who is part of the Brewery Artists Lofts in Los Angeles, invited me to join his online group study.</p>
+                <p>It explored light, motion, and colour. The group consisted of a host of established artists, and me. I was excited and also unsure as to why I was asked. My friend told me I always had an eye and that I belonged. I will forever be grateful.</p>
+                <p>That study, those photos, first on an old phone and then a wee Canon Powershot, kept me sane during one of the most stressful times in my life. And though the study ended, it left me with a foundation that is now integrated into my view. Even though it was a few years later before I began to seriously shoot, I was a changed person.</p>
+                <p>I am also deeply thankful to those dear people in my life, who saw something happening and pushed me through. They support me to this day.</p>
+                <p>I think I am still evolving. I hope I always will. And while I do enjoy coastal scenes, deep in my soul. Street photography has claimed me. It has become how I breathe, walk and see.</p>
+              </div>
+              <div class="entrance-timeline" aria-label="Photography journey">
+                <article>
+                  <h2>Over a dozen years ago</h2>
+                  <p>A friend invited me into an online group study with established artists.</p>
+                </article>
+                <article>
+                  <h2>The study</h2>
+                  <p>Exploring light, motion and colour; first with an old phone, then a wee Canon Powershot.</p>
+                </article>
+                <article>
+                  <h2>A few years later</h2>
+                  <p>I began to seriously shoot, carrying the study’s foundation into my view.</p>
+                </article>
+                <article>
+                  <h2>Still evolving</h2>
+                  <p>Street photography has become how I breathe, walk and see.</p>
+                </article>
+              </div>
+            </section>
+            <div class="wall-artwork" aria-label="Lab Gallery photographs"></div>
+          </div>
+          <div class="wall side left">
+            <blockquote class="entrance-quote">
+              <p>In her work Missy manages to combine her heartfelt curiosity about the world with elegant technical skills thus creating a perfectly balanced portrait of the streets she walks.</p>
+              <p>The honest beauty of casual situations and ordinary people is the consistent narrative of her work.</p>
+              <p>Missy is a visual storyteller able to encapsulate the short movies of everyday life in one expressive elegant snapshot.</p>
+              <cite>— Giorgio Drupi, Pinocchio Magazine</cite>
+            </blockquote>
+            <div class="wall-artwork" aria-label="Lab Gallery photographs"></div>
+          </div>
+          <div class="wall side right">
+            <figure class="entrance-wall-photo">
+              <img src="assets/entrance/street-photograph.jpg" alt="Black-and-white street photograph beneath a stone arch, with a figure's shadow across the wall">
+            </figure>
+            <div class="wall-artwork" aria-label="Lab Gallery photographs"></div>
+          </div>
+          <div class="wall side back">
+            <section class="entrance-video-showcase" aria-label="Projected video and exhibition venues">
+              <div class="entrance-projector" aria-label="Instagram Reel projector">
+                <iframe
+                  src="https://www.instagram.com/reel/DTTet1bDWHu/embed/"
+                  title="Instagram Reel projected on the gallery wall"
+                  loading="lazy"
+                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                  allowfullscreen
+                  referrerpolicy="strict-origin-when-cross-origin"></iframe>
+              </div>
+              <div class="exhibition-links">
+                <div class="prize-member-row">
+                  <a class="exhibition-card" href="https://www.missybrinkmeyer.com/aib-portrait-prize-2025/" target="_blank" rel="noopener noreferrer" aria-label="Open the AIB Portrait Prize 2025 page">
+                    <div class="exhibition-heading">
+                      <h2>AIB Portrait Prize 2025</h2>
+                    </div>
+                  </a>
+                </div>
+                <a class="exhibitions-awards-link" href="https://www.missybrinkmeyer.com/list-of-exhibitions/" target="_blank" rel="noopener noreferrer">Exhibitions &amp; Awards</a>
+                <a class="exhibitions-awards-link" href="https://hillsborofineart.com/" target="_blank" rel="noopener noreferrer">Hillsboro Fine Art<br>20th Century &amp; Contemporary Art</a>
+                <div class="gallery-credits">
+                  <div class="social-member-row">
+                    <a class="instagram-profile" href="https://www.instagram.com/whereismissyb/" target="_blank" rel="noopener noreferrer" aria-label="Visit @whereismissyb on Instagram">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+                      <span>@whereismissyb</span>
+                    </a>
+                    <img class="vai-member-logo" src="assets/vai-member-logo.png" alt="Member of Visual Artists Ireland" loading="lazy">
+                  </div>
+                  <p class="copyright-notice">All Content Copyright © Missy Brinkmeyer</p>
+                </div>
+              </div>
+            </div>
+            <div class="wall-artwork" aria-label="Lab Gallery photographs"></div>
+          </div>
+          <div class="wall ceiling"></div>
+          <div class="wall floor"></div>
+        </div>
+      </div>
+      <p class="interaction-hint">DRAG TO TURN · EXPLORE THE FOUR WALLS</p>
+      <aside class="collection-info" id="collectionInfo"></aside>
+      <nav class="room-nav" aria-label="Gallery wings">
+        <button data-target="home" aria-current="page">Entrance</button>
+        <button data-target="city">01 · The Lab Gallery</button>
+        <button data-target="garden">02 · Garden</button>
+        <button data-target="glamour">03 · After hours</button>
+      </nav>
+      <div class="room-controls" aria-label="Turn the gallery">
+        <button class="round-button" id="turnLeft" aria-label="Turn gallery left">←</button>
+        <span>TURN</span>
+        <button class="round-button" id="turnRight" aria-label="Turn gallery right">→</button>
+      </div>
+    </section>
+  </main>
+
+  <section class="photo-approach" id="photoApproach" role="dialog" aria-modal="true" aria-label="Closer view of photograph" hidden>
+    <button class="photo-step-back" id="photoStepBack" type="button">← Step back</button>
+    <img id="approachImage" alt="">
+  </section>
+
+  <section class="shop-overlay" id="shopOverlay" aria-modal="true" role="dialog" aria-labelledby="shopTitle">
+    <div class="shop-panel">
+      <button class="panel-close" data-close="shop" aria-label="Close The Calotypist">×</button>
+      <h2 id="shopTitle">The Calotypist</h2>
+      <div class="shop-carousel" aria-label="Browse gallery keepsakes">
+        <button class="shop-arrow" id="shopPrevious" type="button" aria-label="Previous product" aria-controls="shopGrid">←</button>
+        <div class="shop-grid" id="shopGrid" aria-live="polite"></div>
+        <button class="shop-arrow" id="shopNext" type="button" aria-label="Next product" aria-controls="shopGrid">→</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="consent-overlay" id="consentOverlay" aria-modal="true" role="dialog" aria-labelledby="consentTitle">
+    <div class="consent-panel">
+      <button class="panel-close" data-close="consent" aria-label="Close invitation signup">×</button>
+      <span class="eyebrow">A note from the gallery</span>
+      <h2 id="consentTitle">Be first through the door.</h2>
+      <p class="panel-intro">Gallery news and invitations, your way.</p>
+      <form id="consentForm">
+        <label class="field">Your name<input type="text" name="name" autocomplete="name" required></label>
+        <label class="field">Email address<input type="email" name="email" autocomplete="email"></label>
+        <label class="field">Phone number<input type="tel" name="phone" autocomplete="tel" placeholder="+353"></label>
+        <label class="consent-choice"><input type="checkbox" name="emailConsent"><span>Email me gallery news and invitations. Unsubscribe anytime.</span></label>
+        <label class="consent-choice"><input type="checkbox" name="smsConsent"><span>Send me gallery news and invitations by SMS. Reply STOP anytime.</span></label>
+          <p class="consent-fine">Preview only — your details are not sent or saved.</p>
+          <details class="privacy-details" id="privacy">
+            <summary>Consent &amp; privacy details (preview)</summary>
+            <p class="consent-fine">Email and SMS consent are optional, separate and not pre-selected. You need to provide an email address or phone number only for the channel(s) you choose. We’ll use your details only for the selected updates and keep a record of your consent. Irish/EU rules require prior consent for these marketing messages; each message must identify the sender and provide a working opt-out. You can withdraw consent at any time.</p>
+            <p><strong>Controller:</strong> The gallery owner’s legal name and postal contact details must be added here before launch. The production notice must also explain the purpose and consent basis (GDPR Article 6(1)(a)), recipients/processors, retention period, how to exercise data rights or withdraw consent, and how to complain to Ireland’s <a href="https://www.dataprotection.ie/" target="_blank" rel="noopener noreferrer">Data Protection Commission</a>. This prototype does not submit or save form details.</p>
+          </details>
+          <div class="consent-success" id="consentSuccess" role="status">Thanks — this is a preview only. Your contact details were not sent or saved. The live signup needs a secure service and a completed privacy notice before collecting subscribers.</div>
+        <button class="consent-submit" type="submit">Save my preferences</button>
+        <button class="consent-later" type="button" id="consentLater">Perhaps another time</button>
+      </form>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    (() => {
+      const collections = {
+        home: { title: "Entrance hall", angle: 0 },
+        city: { title: "The Lab Gallery", eyebrow: "01 — The Lab Gallery", angle: 90, description: "" },
+        garden: { title: "Where softness grows", eyebrow: "02 — The garden", angle: 90, description: "Colour opens like a secret. A softer study of wild places, quiet mornings and becoming." },
+        glamour: { title: "Impossible, in colour", eyebrow: "03 — After hours", angle: 180, description: "A playful collision of fashion, pop spectacle and sharp geometry. Glamour with its elbows out." }
+      };
+      const imageUrl = (id, width = 600) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=80`;
+      const gallery = document.getElementById("gallery");
+      const room = document.getElementById("room");
+      const toast = document.getElementById("toast");
+      let activeRoom = "home", roomAngle = 0, dragStart = null, toastTimer;
+
+
+      const photoApproach = document.getElementById("photoApproach");
+      const approachImage = document.getElementById("approachImage");
+      const photoStepBack = document.getElementById("photoStepBack");
+      let approachedPhoto = null, approachFrame;
+      function stepBack() {
+        window.cancelAnimationFrame(approachFrame);
+        photoApproach.hidden = true;
+        if (approachedPhoto) approachedPhoto.focus();
+        approachedPhoto = null;
+      }
+      photoStepBack.addEventListener("click", stepBack);
+      photoApproach.addEventListener("click", event => { if (event.target === photoApproach) stepBack(); });
+      photoApproach.addEventListener("keydown", event => {
+        if (event.key === "Tab") { event.preventDefault(); photoStepBack.focus(); }
+      });
+      document.querySelectorAll(".entrance-portrait img, .entrance-wall-photo img, .framed-photo img").forEach(image => {
+        image.tabIndex = 0;
+        image.setAttribute("role", "button");
+        image.setAttribute("aria-label", `Walk closer to ${image.alt}`);
+        image.classList.add("gallery-photo-button");
+        function approach() {
+          const bounds = image.getBoundingClientRect();
+          approachedPhoto = image;
+          approachImage.src = image.currentSrc || image.src;
+          approachImage.alt = image.alt;
+          approachImage.style.transition = "none";
+          Object.assign(approachImage.style, { left: `${bounds.left}px`, top: `${bounds.top}px`, width: `${bounds.width}px`, height: `${bounds.height}px` });
+          photoApproach.hidden = false;
+          approachImage.getBoundingClientRect();
+          approachFrame = window.requestAnimationFrame(() => {
+            approachImage.style.transition = "";
+            Object.assign(approachImage.style, { left: "5vw", top: "50px", width: "90vw", height: "calc(100svh - 100px)" });
+          });
+          photoStepBack.focus();
+        }
+        image.addEventListener("click", approach);
+        image.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") { event.preventDefault(); approach(); }
+        });
+      });
+
+
+      function enterRoom(id) {
+        stepBack();
+        activeRoom = id;
+        const data = collections[id];
+        gallery.dataset.room = id;
+        roomAngle = data.angle;
+        room.style.setProperty("--room-y", `${roomAngle}deg`);
+        document.querySelectorAll(".room-nav button").forEach(button => {
+          if (button.dataset.target === id) button.setAttribute("aria-current", "page");
+          else button.removeAttribute("aria-current");
+        });
+        const info = document.getElementById("collectionInfo");
+        info.innerHTML = id === "home" ? "" : `<strong>${data.eyebrow}</strong>${data.description}`;
+      }
+      document.querySelectorAll(".room-nav button").forEach(button => button.addEventListener("click", () => enterRoom(button.dataset.target)));
+      document.getElementById("homeButton").addEventListener("click", () => enterRoom("home"));
+      document.getElementById("turnLeft").addEventListener("click", () => rotateRoom(-30));
+      document.getElementById("turnRight").addEventListener("click", () => rotateRoom(30));
+      function rotateRoom(degrees) {
+        roomAngle += degrees;
+        room.style.setProperty("--room-y", `${roomAngle}deg`);
+      }
+      [room].forEach(interactiveRoom => {
+        interactiveRoom.addEventListener("pointerdown", event => {
+          if (event.target.closest("a, button, iframe, input, select, textarea, [role='button'], [contenteditable='true']")) return;
+          dragStart = { x: event.clientX, angle: roomAngle };
+          interactiveRoom.classList.add("dragging");
+          interactiveRoom.setPointerCapture(event.pointerId);
+        });
+        interactiveRoom.addEventListener("pointermove", event => {
+          if (!dragStart) return;
+          roomAngle = dragStart.angle + (event.clientX - dragStart.x) * .22;
+          room.style.setProperty("--room-y", `${roomAngle}deg`);
+        });
+        const stopDrag = () => {
+          dragStart = null;
+          interactiveRoom.classList.remove("dragging");
+        };
+        interactiveRoom.addEventListener("pointerup", stopDrag);
+        interactiveRoom.addEventListener("pointercancel", stopDrag);
+      });
+      window.addEventListener("keydown", event => {
+        if (event.key === "Escape") { stepBack(); closeOverlay("shop"); closeOverlay("consent"); }
+        if (!photoApproach.hidden) return;
+        if (event.key === "ArrowLeft") rotateRoom(-18);
+        if (event.key === "ArrowRight") rotateRoom(18);
+      });
+
+      const shopItems = [
+        { image: "photo-1490750967868-88aa4486c946", alt: "Floral photograph", price: 2400 },
+        { image: "photo-1539109136881-3be0616acf4b", alt: "Fashion photograph", price: 3200 },
+        { image: "photo-1519501025264-65ba15a82390", alt: "City photograph", price: 3000 },
+        { image: "photo-1497250681960-ef046c08a56e", alt: "Botanical photograph", price: 2000 }
+      ];
+      const shopGrid = document.getElementById("shopGrid");
+      const printPrice = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+      shopItems.forEach(({ image, alt, price, title = "Title pending", description = "Artwork description pending.", longDescription = "The extended artwork description will appear here, with more about the photograph, its setting, and the artist’s perspective. Final text to be supplied by Missy Brinkmeyer.", year = "Year pending" }) => {
+        const item = document.createElement("article");
+        item.className = "shop-item";
+        item.innerHTML = `<img src="${imageUrl(image, 1600)}" alt="${alt}" loading="lazy"><div><h3>${title}</h3><p class="art-description">${description}</p><p class="art-long-description">${longDescription}</p><p class="art-meta"><span>${year}</span><span>Print 2/30</span><span class="art-price">${printPrice.format(price)}</span></p></div>`;
+        const artworkImage = item.querySelector("img");
+        const updateOrientation = () => item.classList.toggle("portrait", artworkImage.naturalHeight > artworkImage.naturalWidth);
+        artworkImage.addEventListener("load", updateOrientation);
+        if (artworkImage.complete) updateOrientation();
+        shopGrid.append(item);
+      });
+      let shopIndex = 0;
+      const shopPageSize = 1;
+      const shopPrevious = document.getElementById("shopPrevious");
+      const shopNext = document.getElementById("shopNext");
+      const lastShopPage = Math.max(0, Math.floor((shopGrid.children.length - 1) / shopPageSize) * shopPageSize);
+      function showShopItem() {
+        [...shopGrid.children].forEach((item, index) => { item.hidden = index < shopIndex || index >= shopIndex + shopPageSize; });
+        shopPrevious.disabled = shopIndex === 0;
+        shopNext.disabled = shopIndex >= lastShopPage;
+      }
+      shopPrevious.addEventListener("click", () => { shopIndex = Math.max(0, shopIndex - shopPageSize); showShopItem(); });
+      shopNext.addEventListener("click", () => { shopIndex = Math.min(lastShopPage, shopIndex + shopPageSize); showShopItem(); });
+      showShopItem();
+      function openOverlay(id) {
+        if (id === "consent") sessionStorage.setItem("gallery-invite-shown", "true");
+        document.getElementById(`${id}Overlay`).classList.add("open");
+        document.body.style.overflow = "hidden";
+      }
+      function closeOverlay(id) {
+        const overlay = document.getElementById(`${id}Overlay`);
+        overlay.classList.remove("open");
+        if (!document.querySelector(".shop-overlay.open, .consent-overlay.open")) document.body.style.overflow = "";
+      }
+      document.getElementById("shopButton").addEventListener("click", () => openOverlay("shop"));
+      document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => closeOverlay(button.dataset.close)));
+      document.querySelectorAll(".shop-overlay, .consent-overlay").forEach(overlay => overlay.addEventListener("click", event => {
+        if (event.target === overlay) closeOverlay(overlay.id.replace("Overlay", ""));
+      }));
+
+      const consentOverlay = document.getElementById("consentOverlay");
+      if (!sessionStorage.getItem("gallery-invite-shown") && localStorage.getItem("gallery-invite-choice") !== "completed-preview") {
+        window.setTimeout(() => {
+          if (!sessionStorage.getItem("gallery-invite-shown") && localStorage.getItem("gallery-invite-choice") !== "completed-preview") openOverlay("consent");
+        }, 10000);
+      }
+      document.getElementById("consentLater").addEventListener("click", () => closeOverlay("consent"));
+      document.getElementById("consentForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const data = new FormData(form);
+        const email = String(data.get("email") || "").trim();
+        const phone = String(data.get("phone") || "").trim();
+        const emailConsent = data.has("emailConsent");
+        const smsConsent = data.has("smsConsent");
+        if ((emailConsent && !email) || (smsConsent && !phone) || (!emailConsent && !smsConsent)) {
+          showToast(!emailConsent && !smsConsent ? "Choose at least one update channel to sign up." : "Add a contact detail for each channel you selected.");
+          return;
+        }
+        localStorage.setItem("gallery-invite-choice", "completed-preview");
+        document.getElementById("consentSuccess").style.display = "block";
+        form.querySelector(".consent-submit").textContent = "Preview completed";
+        form.querySelector(".consent-submit").disabled = true;
+      });
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("visible");
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => toast.classList.remove("visible"), 3500);
+      }
+
+      document.getElementById("landscapeButton").addEventListener("click", async () => {
+        const hint = document.getElementById("orientationHint");
+        if (!screen.orientation || typeof screen.orientation.lock !== "function") {
+          hint.textContent = "This browser cannot rotate automatically. Please turn your phone sideways.";
+          return;
+        }
+        try {
+          if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+          await screen.orientation.lock("landscape");
+          hint.textContent = "Landscape mode enabled.";
+        } catch {
+          hint.textContent = "Automatic rotation is blocked by this browser. Please turn your phone sideways.";
+        }
+      });
+
+    })();
+  </script>
+</body>
+</html>
